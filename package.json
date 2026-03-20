@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "publisher": "hexyl",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hexylab/ccdock.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
