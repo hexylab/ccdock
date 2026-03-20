@@ -1,0 +1,10 @@
+src/**
+test/**
+scripts/**
+docs/**
+node_modules/**
+!node_modules/better-sqlite3/**
+.gitignore
+tsconfig.json
+esbuild.config.mjs
+vitest.config.ts

@@ -1,0 +1,59 @@
+{
+  "name": "ccdock",
+  "displayName": "Claude Code Dock",
+  "description": "Manage Claude Code sessions from VSCode secondary sidebar",
+  "version": "0.1.0",
+  "publisher": "hexyl",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "ccdock",
+          "title": "Claude Code Dock",
+          "icon": "$(terminal)"
+        }
+      ]
+    },
+    "views": {
+      "ccdock": [
+        {
+          "type": "webview",
+          "id": "ccdock.sessionPanel",
+          "name": "Sessions"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/better-sqlite3": "^7.6.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0",
+    "eslint": "^8.57.0",
+    "@vscode/vsce": "^2.24.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
+  }
+}
