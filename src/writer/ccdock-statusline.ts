@@ -24,9 +24,10 @@ function writeToDb(dbPath: string, data: StatusLineStdinData): void {
 
   try {
     const repo = new SessionRepo(db);
-    const contextUsed = (data.context_window?.total_input_tokens != null && data.context_window?.total_output_tokens != null)
-      ? data.context_window.total_input_tokens + data.context_window.total_output_tokens
-      : null;
+    // context_used にパーセンテージ値、context_total に 100 を格納
+    // ContextBar UI が used/total*100 でパーセンテージを計算するため
+    const contextUsedPct = data.context_window?.used_percentage;
+    const contextUsed = typeof contextUsedPct === 'number' ? contextUsedPct : null;
 
     repo.updateMetadata({
       process_key: processKey,
@@ -34,7 +35,7 @@ function writeToDb(dbPath: string, data: StatusLineStdinData): void {
       model_display: data.model?.display_name ?? null,
       cost_usd: data.cost?.total_cost_usd ?? null,
       context_used: contextUsed,
-      context_total: data.context_window?.context_window_size ?? null,
+      context_total: contextUsed != null ? 100 : null,
       total_input_tokens: data.context_window?.total_input_tokens ?? null,
       total_output_tokens: data.context_window?.total_output_tokens ?? null,
       lines_added: data.cost?.total_lines_added ?? null,
