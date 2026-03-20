@@ -31,7 +31,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const repo = new SessionRepo(db);
   repo.cleanupOld(GC_THRESHOLD_MS);
 
-  const writerPath = path.join(context.extensionPath, 'dist', 'ccdock-writer.js');
+  const writerPath = path.join(context.extensionPath, 'dist', 'writer', 'ccdock-writer.js');
   try {
     installHooks(CLAUDE_SETTINGS_PATH, writerPath, DB_PATH);
   } catch (err) {

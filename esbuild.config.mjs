@@ -16,7 +16,7 @@ const extensionConfig = {
 const writerConfig = {
   entryPoints: ['src/writer/ccdock-writer.ts'],
   bundle: true,
-  outfile: 'dist/ccdock-writer.js',
+  outfile: 'dist/writer/ccdock-writer.js',
   external: ['better-sqlite3'],
   format: 'cjs',
   platform: 'node',

@@ -1,19 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 
-const src = path.join(__dirname, '..', 'node_modules', 'better-sqlite3');
-const dest = path.join(__dirname, '..', 'dist', 'node_modules', 'better-sqlite3');
+const nodeModules = path.join(__dirname, '..', 'node_modules');
+const distNodeModules = path.join(__dirname, '..', 'dist', 'node_modules');
+const writerNodeModules = path.join(__dirname, '..', 'dist', 'writer', 'node_modules');
 
-// Recursively copy a directory without filtering (used for sub-directories inside build/lib/prebuilds)
+// Recursively copy a directory
 function copyAll(srcDir, destDir) {
   if (!fs.existsSync(destDir)) {
     fs.mkdirSync(destDir, { recursive: true });
   }
-
   for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
     const srcPath = path.join(srcDir, entry.name);
     const destPath = path.join(destDir, entry.name);
-
     if (entry.isDirectory()) {
       copyAll(srcPath, destPath);
     } else {
@@ -22,16 +21,14 @@ function copyAll(srcDir, destDir) {
   }
 }
 
-// Top-level: only enter selected directories; copy select files
-function copyTopLevel(srcDir, destDir) {
+// Copy only selected top-level directories from better-sqlite3
+function copyBetterSqlite3(srcDir, destDir) {
   if (!fs.existsSync(destDir)) {
     fs.mkdirSync(destDir, { recursive: true });
   }
-
   for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
     const srcPath = path.join(srcDir, entry.name);
     const destPath = path.join(destDir, entry.name);
-
     if (entry.isDirectory()) {
       if (['build', 'lib', 'prebuilds'].includes(entry.name)) {
         copyAll(srcPath, destPath);
@@ -46,11 +43,29 @@ function copyTopLevel(srcDir, destDir) {
   }
 }
 
-copyTopLevel(src, dest);
+// 1. Writer用: システムNode (v24) でコンパイル済みの better-sqlite3 をコピー
+//    (npm install 時にシステムNodeでビルドされたもの)
+const systemBetterSqlite3 = path.join(nodeModules, 'better-sqlite3');
+copyBetterSqlite3(systemBetterSqlite3, path.join(writerNodeModules, 'better-sqlite3'));
 
-// better-sqlite3 の依存パッケージもコピー (bindings → file-uri-to-path)
-const nodeModules = path.join(__dirname, '..', 'node_modules');
-const distNodeModules = path.join(__dirname, '..', 'dist', 'node_modules');
+// Writer用の依存パッケージもコピー
+for (const dep of ['bindings', 'file-uri-to-path']) {
+  const depSrc = path.join(nodeModules, dep);
+  const depDest = path.join(writerNodeModules, dep);
+  if (fs.existsSync(depSrc)) {
+    copyAll(depSrc, depDest);
+  }
+}
+console.log('Copied system-Node better-sqlite3 to dist/writer/node_modules/');
+
+// 2. Extension用: VSCode Node (v22) でコンパイル済みの better-sqlite3 をコピー
+//    /tmp/ccdock-rebuild/ にNode 22でビルドしたものがある場合はそれを使う
+const vscodeRebuildPath = '/tmp/ccdock-rebuild/node_modules/better-sqlite3';
+const extensionBetterSqlite3 = fs.existsSync(vscodeRebuildPath)
+  ? vscodeRebuildPath
+  : systemBetterSqlite3; // フォールバック（同一バージョンの場合）
+
+copyBetterSqlite3(extensionBetterSqlite3, path.join(distNodeModules, 'better-sqlite3'));
 
 for (const dep of ['bindings', 'file-uri-to-path']) {
   const depSrc = path.join(nodeModules, dep);
@@ -60,4 +75,9 @@ for (const dep of ['bindings', 'file-uri-to-path']) {
   }
 }
 
-console.log('Copied better-sqlite3 native addon and dependencies to dist/');
+if (fs.existsSync(vscodeRebuildPath)) {
+  console.log('Copied VSCode-Node better-sqlite3 to dist/node_modules/');
+} else {
+  console.log('WARNING: No VSCode-Node rebuild found. Using system build (may cause ABI mismatch).');
+  console.log('Run: nvm use 22 && cd /tmp/ccdock-rebuild && npm install better-sqlite3');
+}
