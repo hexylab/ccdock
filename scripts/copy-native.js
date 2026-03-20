@@ -47,4 +47,17 @@ function copyTopLevel(srcDir, destDir) {
 }
 
 copyTopLevel(src, dest);
-console.log('Copied better-sqlite3 native addon to dist/');
+
+// better-sqlite3 の依存パッケージもコピー (bindings → file-uri-to-path)
+const nodeModules = path.join(__dirname, '..', 'node_modules');
+const distNodeModules = path.join(__dirname, '..', 'dist', 'node_modules');
+
+for (const dep of ['bindings', 'file-uri-to-path']) {
+  const depSrc = path.join(nodeModules, dep);
+  const depDest = path.join(distNodeModules, dep);
+  if (fs.existsSync(depSrc)) {
+    copyAll(depSrc, depDest);
+  }
+}
+
+console.log('Copied better-sqlite3 native addon and dependencies to dist/');
