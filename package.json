@@ -17,11 +17,11 @@
   "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
-      "panel": [
+      "activitybar": [
         {
           "id": "ccdock",
           "title": "Claude Code Dock",
-          "icon": "$(terminal)"
+          "icon": "$(layers)"
         }
       ]
     },
