@@ -190,6 +190,7 @@ git commit -m "docs: update spec with verified hooks stdin fields"
     "typescript": "^5.4.0",
     "vitest": "^1.4.0",
     "eslint": "^8.57.0",
+    "@types/better-sqlite3": "^7.6.0",
     "@vscode/vsce": "^2.24.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -1611,35 +1612,11 @@ git commit -m "feat: add DB poller and session store for reactive session tracki
 
 - [ ] **Step 1: src/webview/app/types.ts を作成**
 
+`shared/types.ts` からの re-export にして型の重複定義を防ぐ。esbuild の browser バンドルでは Node.js 固有の import がなければ shared/types.ts をそのまま解決できる。
+
 ```typescript
-export interface Session {
-  dock_id: string;
-  process_key: string;
-  session_id: string;
-  model: string | null;
-  model_display: string | null;
-  cwd: string | null;
-  status: string;
-  cost_usd: number;
-  context_used: number;
-  context_total: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  lines_added: number;
-  lines_removed: number;
-  started_at: string;
-  updated_at: string;
-  version: string | null;
-}
-
-export type ExtensionMessage =
-  | { type: 'sessions:snapshot'; sessions: Session[] }
-  | { type: 'sessions:upsert'; session: Session }
-  | { type: 'sessions:remove'; dockId: string };
-
-export type WebViewMessage =
-  | { type: 'session:dismiss'; dockId: string }
-  | { type: 'ready' };
+// shared/types.ts を単一の信頼源とする
+export type { Session, ExtensionMessage, WebViewMessage } from '../../shared/types';
 ```
 
 - [ ] **Step 2: src/webview/app/hooks/useSessionStore.ts を作成**
@@ -1652,7 +1629,14 @@ declare const acquireVsCodeApi: () => {
   postMessage: (msg: WebViewMessage) => void;
 };
 
-const vscode = acquireVsCodeApi();
+// acquireVsCodeApi() は一度しか呼べないためキャッシュする
+let _vscode: ReturnType<typeof acquireVsCodeApi> | undefined;
+function getVsCodeApi() {
+  if (!_vscode) {
+    _vscode = acquireVsCodeApi();
+  }
+  return _vscode;
+}
 
 export function useSessionStore() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -1682,12 +1666,12 @@ export function useSessionStore() {
     };
 
     window.addEventListener('message', handler);
-    vscode.postMessage({ type: 'ready' });
+    getVsCodeApi().postMessage({ type: 'ready' });
     return () => window.removeEventListener('message', handler);
   }, []);
 
   const dismiss = useCallback((dockId: string) => {
-    vscode.postMessage({ type: 'session:dismiss', dockId });
+    getVsCodeApi().postMessage({ type: 'session:dismiss', dockId });
   }, []);
 
   return { sessions, dismiss };
@@ -2042,16 +2026,105 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
 }
 ```
 
-- [ ] **Step 9: コミット**
+- [ ] **Step 9: useSessionStore のテストを作成**
+
+WebView コンポーネントのロジックテスト。vitest.config.ts に jsdom 環境を追加:
+
+```typescript
+// test/use-session-store.test.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+
+// acquireVsCodeApi のモック
+const postMessage = vi.fn();
+vi.stubGlobal('acquireVsCodeApi', () => ({ postMessage }));
+
+// モック後にインポート
+const { useSessionStore } = await import('../src/webview/app/hooks/useSessionStore');
+
+describe('useSessionStore', () => {
+  beforeEach(() => {
+    postMessage.mockClear();
+  });
+
+  it('sends ready message on mount', () => {
+    renderHook(() => useSessionStore());
+    expect(postMessage).toHaveBeenCalledWith({ type: 'ready' });
+  });
+
+  it('handles sessions:snapshot message', () => {
+    const { result } = renderHook(() => useSessionStore());
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'sessions:snapshot',
+          sessions: [{ dock_id: 'd1', status: 'active' }],
+        },
+      }));
+    });
+
+    expect(result.current.sessions).toHaveLength(1);
+    expect(result.current.sessions[0].dock_id).toBe('d1');
+  });
+
+  it('handles sessions:upsert for new session', () => {
+    const { result } = renderHook(() => useSessionStore());
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'sessions:upsert', session: { dock_id: 'd1', status: 'active' } },
+      }));
+    });
+
+    expect(result.current.sessions).toHaveLength(1);
+  });
+
+  it('handles sessions:remove', () => {
+    const { result } = renderHook(() => useSessionStore());
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'sessions:snapshot', sessions: [{ dock_id: 'd1' }] },
+      }));
+    });
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'sessions:remove', dockId: 'd1' },
+      }));
+    });
+
+    expect(result.current.sessions).toHaveLength(0);
+  });
+});
+```
+
+devDependencies に `@testing-library/react` と `jsdom` を追加:
+```bash
+npm install -D @testing-library/react jsdom
+```
+
+- [ ] **Step 10: テストをパスさせる**
 
 ```bash
-git add src/webview/
+npx vitest run test/use-session-store.test.ts
+```
+
+Expected: ALL PASS
+
+- [ ] **Step 11: コミット**
+
+```bash
+git add src/webview/ test/use-session-store.test.ts
 git commit -m "feat: add WebView provider and React session card UI"
 ```
 
 ---
 
 ## Task 7: Extension エントリポイント（activate/deactivate）
+
+> **Note:** `extension.ts` は VSCode Extension API に強く依存しており、`vscode` モジュールのモックが困難なため、単体テストは省略する。動作確認は Task 9 の統合テストで行う。
 
 **Files:**
 - Create: `src/extension.ts`
