@@ -1,15 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Session, ExtensionMessage, WebViewMessage } from '../types';
-
-declare const acquireVsCodeApi: () => {
-  postMessage: (msg: WebViewMessage) => void;
-};
-
-let _vscode: ReturnType<typeof acquireVsCodeApi> | undefined;
-function getVsCodeApi() {
-  if (!_vscode) { _vscode = acquireVsCodeApi(); }
-  return _vscode;
-}
+import type { Session, ExtensionMessage } from '../types';
+import { getVsCodeApi } from '../vscodeApi';
 
 export function useSessionStore() {
   const [sessions, setSessions] = useState<Session[]>([]);

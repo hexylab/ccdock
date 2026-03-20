@@ -32,6 +32,7 @@ export function processHookEvent(db: Database.Database, data: HookStdinData): vo
     session_id: data.session_id,
     event,
     cwd: data.cwd,
+    transcript_path: data.transcript_path,
   });
 }
 

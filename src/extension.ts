@@ -7,6 +7,7 @@ import { installHooks, uninstallHooks } from './hooks-installer';
 import { DbPoller } from './watcher/db-poller';
 import { SessionStore } from './watcher/session-store';
 import { SessionPanelProvider } from './webview/provider';
+import { LauncherHandler } from './launcher/launcher-handler';
 import {
   DB_PATH,
   CLAUDE_SETTINGS_PATH,
@@ -18,6 +19,7 @@ import type { WebViewMessage } from './shared/types';
 
 let poller: DbPoller | undefined;
 let db: ReturnType<typeof openDatabase> | undefined;
+let launcherHandler: LauncherHandler | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   try {
@@ -52,13 +54,24 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   provider = new SessionPanelProvider(context.extensionUri, {
-    onReady: () => sendSnapshot(),
+    onReady: () => {
+      sendSnapshot();
+      launcherHandler?.sendConfig();
+    },
     onMessage: (msg: WebViewMessage) => {
       if (msg.type === 'session:dismiss') {
         repo.dismiss(msg.dockId);
+      } else if (msg.type.startsWith('launcher:')) {
+        launcherHandler?.handleMessage(msg);
       }
     },
   });
+
+  launcherHandler = new LauncherHandler(
+    context.globalState,
+    (m) => provider?.postMessage(m),
+  );
+  context.subscriptions.push({ dispose: () => launcherHandler?.dispose() });
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(

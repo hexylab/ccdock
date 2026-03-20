@@ -67,6 +67,19 @@ export class SessionPanelProvider implements vscode.WebviewViewProvider {
     .status-dot.pulse { animation: pulse 1.5s ease-in-out infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     .session-card.stale { opacity: 0.5; }
+    .app-root { display: flex; flex-direction: column; height: 100vh; }
+    .session-list { flex: 1; overflow-y: auto; }
+    .launcher-panel { position: sticky; bottom: 0; background: var(--vscode-sideBar-background); border-top: 1px solid var(--vscode-panel-border); padding: 10px 8px; }
+    .launcher-dir { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+    .launcher-select { flex: 1; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 4px; padding: 4px 6px; font-size: 12px; font-family: var(--vscode-font-family); }
+    .launcher-remove-btn { background: none; border: none; color: var(--vscode-disabledForeground); cursor: pointer; font-size: 16px; padding: 0 4px; line-height: 1; }
+    .launcher-remove-btn:hover { color: var(--vscode-errorForeground); }
+    .launcher-options { display: flex; gap: 12px; margin-bottom: 8px; }
+    .launcher-checkbox { display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; }
+    .launcher-checkbox input { margin: 0; cursor: pointer; }
+    .launcher-btn { width: 100%; padding: 6px 0; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 4px; font-size: 12px; font-family: var(--vscode-font-family); cursor: pointer; }
+    .launcher-btn:hover { background: var(--vscode-button-hoverBackground); }
+    .launcher-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body>

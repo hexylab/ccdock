@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 const MIGRATIONS: Record<number, string> = {
   1: `
@@ -29,6 +29,9 @@ const MIGRATIONS: Record<number, string> = {
       version    INTEGER PRIMARY KEY,
       applied_at TEXT NOT NULL
     );
+  `,
+  2: `
+    ALTER TABLE sessions ADD COLUMN transcript_path TEXT;
   `,
 };
 

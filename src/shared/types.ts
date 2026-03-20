@@ -16,6 +16,7 @@ export interface Session {
   started_at: string;
   updated_at: string;
   version: string | null;
+  transcript_path: string | null;
 }
 
 export interface HookStdinData {
@@ -32,12 +33,16 @@ export interface HookStdinData {
 export type ExtensionMessage =
   | { type: 'sessions:snapshot'; sessions: Session[] }
   | { type: 'sessions:upsert'; session: Session }
-  | { type: 'sessions:remove'; dockId: string };
+  | { type: 'sessions:remove'; dockId: string }
+  | { type: 'launcher:config'; workspaceFolders: string[]; customPaths: string[] };
 
 // WebView → Extension
 export type WebViewMessage =
   | { type: 'session:dismiss'; dockId: string }
-  | { type: 'ready' };
+  | { type: 'ready' }
+  | { type: 'launcher:launch'; cwd: string; args: string[] }
+  | { type: 'launcher:browse' }
+  | { type: 'launcher:removePath'; path: string };
 
 export interface StatusLineStdinData {
   cwd: string;
