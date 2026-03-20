@@ -32,8 +32,9 @@ export function activate(context: vscode.ExtensionContext): void {
   repo.cleanupOld(GC_THRESHOLD_MS);
 
   const writerPath = path.join(context.extensionPath, 'dist', 'writer', 'ccdock-writer.js');
+  const statuslinePath = path.join(context.extensionPath, 'dist', 'writer', 'ccdock-statusline.js');
   try {
-    installHooks(CLAUDE_SETTINGS_PATH, writerPath, DB_PATH);
+    installHooks(CLAUDE_SETTINGS_PATH, writerPath, DB_PATH, statuslinePath);
   } catch (err) {
     vscode.window.showWarningMessage(`ccdock: Failed to install hooks: ${err}`);
   }

@@ -35,3 +35,4 @@ export const POLL_INTERVAL_MS = 1000;
 export const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 export const GC_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const WRITER_MARKER = 'ccdock-writer';
+export const STATUSLINE_MARKER = 'ccdock-statusline';

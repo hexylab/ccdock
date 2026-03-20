@@ -20,6 +20,20 @@ export interface UpsertParams {
   version?: string;
 }
 
+export interface UpdateMetadataParams {
+  process_key: string;
+  model?: string | null;
+  model_display?: string | null;
+  cost_usd?: number | null;
+  context_used?: number | null;
+  context_total?: number | null;
+  total_input_tokens?: number | null;
+  total_output_tokens?: number | null;
+  lines_added?: number | null;
+  lines_removed?: number | null;
+  version?: string | null;
+}
+
 export class SessionRepo {
   constructor(private db: Database.Database) {}
 
@@ -98,5 +112,30 @@ export class SessionRepo {
   cleanupOld(thresholdMs: number): void {
     const cutoff = new Date(Date.now() - thresholdMs).toISOString();
     this.db.prepare('DELETE FROM sessions WHERE updated_at < ?').run(cutoff);
+  }
+
+  updateMetadata(params: UpdateMetadataParams): void {
+    const now = new Date().toISOString();
+    this.db.prepare(`
+      UPDATE sessions SET
+        model = COALESCE(?, model),
+        model_display = COALESCE(?, model_display),
+        cost_usd = COALESCE(?, cost_usd),
+        context_used = COALESCE(?, context_used),
+        context_total = COALESCE(?, context_total),
+        total_input_tokens = COALESCE(?, total_input_tokens),
+        total_output_tokens = COALESCE(?, total_output_tokens),
+        lines_added = COALESCE(?, lines_added),
+        lines_removed = COALESCE(?, lines_removed),
+        version = COALESCE(?, version),
+        updated_at = ?
+      WHERE process_key = ?
+    `).run(
+      params.model ?? null, params.model_display ?? null,
+      params.cost_usd ?? null, params.context_used ?? null, params.context_total ?? null,
+      params.total_input_tokens ?? null, params.total_output_tokens ?? null,
+      params.lines_added ?? null, params.lines_removed ?? null,
+      params.version ?? null, now, params.process_key,
+    );
   }
 }

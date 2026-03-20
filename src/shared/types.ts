@@ -38,3 +38,25 @@ export type ExtensionMessage =
 export type WebViewMessage =
   | { type: 'session:dismiss'; dockId: string }
   | { type: 'ready' };
+
+export interface StatusLineStdinData {
+  cwd: string;
+  session_id: string;
+  transcript_path: string;
+  version?: string;
+  model?: {
+    id: string;
+    display_name: string;
+  };
+  cost?: {
+    total_cost_usd: number;
+    total_lines_added: number;
+    total_lines_removed: number;
+  };
+  context_window?: {
+    total_input_tokens: number;
+    total_output_tokens: number;
+    context_window_size: number;
+  };
+  [key: string]: unknown;
+}

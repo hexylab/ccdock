@@ -81,4 +81,45 @@ describe('HooksInstaller', () => {
     expect(settings.hooks.SessionStart).toHaveLength(1);
     expect(settings.hooks.SessionStart[0].hooks[0].command).toBe('existing-cmd');
   });
+
+  it('installs statusLine when no existing statusLine', () => {
+    fs.writeFileSync(settingsPath, '{}');
+    installHooks(settingsPath, '/ext/dist/ccdock-writer.js', '/home/.ccdock/dock.db', '/ext/dist/ccdock-statusline.js');
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    expect(settings.statusLine).toBeDefined();
+    expect(settings.statusLine.command).toContain('ccdock-statusline');
+    expect(settings.statusLine.command).not.toContain('--original-cmd-b64');
+  });
+
+  it('wraps existing statusLine with original-cmd-b64', () => {
+    fs.writeFileSync(settingsPath, JSON.stringify({
+      statusLine: { type: 'command', command: 'npx -y ccstatusline@latest' },
+    }, null, 2));
+    installHooks(settingsPath, '/ext/dist/ccdock-writer.js', '/home/.ccdock/dock.db', '/ext/dist/ccdock-statusline.js');
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    expect(settings.statusLine.command).toContain('ccdock-statusline');
+    expect(settings.statusLine.command).toContain('--original-cmd-b64');
+    // Decode and verify original command is preserved
+    const match = settings.statusLine.command.match(/--original-cmd-b64 (\S+)/);
+    const decoded = Buffer.from(match[1], 'base64').toString('utf-8');
+    expect(decoded).toBe('npx -y ccstatusline@latest');
+  });
+
+  it('uninstallHooks restores original statusLine', () => {
+    fs.writeFileSync(settingsPath, JSON.stringify({
+      statusLine: { type: 'command', command: 'npx -y ccstatusline@latest' },
+    }, null, 2));
+    installHooks(settingsPath, '/ext/dist/ccdock-writer.js', '/home/.ccdock/dock.db', '/ext/dist/ccdock-statusline.js');
+    uninstallHooks(settingsPath);
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    expect(settings.statusLine.command).toBe('npx -y ccstatusline@latest');
+  });
+
+  it('uninstallHooks removes statusLine when no original', () => {
+    fs.writeFileSync(settingsPath, '{}');
+    installHooks(settingsPath, '/ext/dist/ccdock-writer.js', '/home/.ccdock/dock.db', '/ext/dist/ccdock-statusline.js');
+    uninstallHooks(settingsPath);
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    expect(settings.statusLine).toBeUndefined();
+  });
 });

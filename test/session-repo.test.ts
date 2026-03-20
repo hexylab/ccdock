@@ -90,4 +90,39 @@ describe('SessionRepo', () => {
     repo.dismiss(sessions[0].dock_id);
     expect(repo.getAll()).toHaveLength(0);
   });
+
+  it('updateMetadata updates model and cost for existing session', () => {
+    repo.upsert({ process_key: 'pk-1', session_id: 'sid-1', event: 'SessionStart', cwd: '/a' });
+    repo.updateMetadata({
+      process_key: 'pk-1',
+      model: 'claude-opus-4-6',
+      model_display: 'Opus',
+      cost_usd: 0.42,
+      context_used: 15000,
+      context_total: 200000,
+    });
+    const sessions = repo.getAll();
+    expect(sessions[0].model).toBe('claude-opus-4-6');
+    expect(sessions[0].model_display).toBe('Opus');
+    expect(sessions[0].cost_usd).toBe(0.42);
+    expect(sessions[0].context_used).toBe(15000);
+    expect(sessions[0].context_total).toBe(200000);
+  });
+
+  it('updateMetadata is no-op when session does not exist', () => {
+    repo.updateMetadata({
+      process_key: 'nonexistent',
+      model: 'claude-opus-4-6',
+    });
+    expect(repo.getAll()).toHaveLength(0);
+  });
+
+  it('updateMetadata preserves existing values when null is passed', () => {
+    repo.upsert({ process_key: 'pk-1', session_id: 'sid-1', event: 'SessionStart', cwd: '/a' });
+    repo.updateMetadata({ process_key: 'pk-1', model: 'claude-opus-4-6', cost_usd: 0.5 });
+    repo.updateMetadata({ process_key: 'pk-1', model: null, cost_usd: 0.8 });
+    const sessions = repo.getAll();
+    expect(sessions[0].model).toBe('claude-opus-4-6'); // preserved
+    expect(sessions[0].cost_usd).toBe(0.8); // updated
+  });
 });
